@@ -1,0 +1,12 @@
+{
+  "name": "meteor-globe",
+  "version": "1.0.0",
+  "description": "A 3D Globe visualizing Meteor Impacts over time",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "cd src && python -m SimpleHTTPServer 8000"
+  },
+  "author": "Camden Rudisill",
+  "license": "ISC"
+}
