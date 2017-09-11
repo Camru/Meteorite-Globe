@@ -6,7 +6,7 @@ const geo = (() => {
         });
         material.map = texture ? loadTexture(texture) : null;
         material.bumpMap = bumpMap ? loadTexture(bumpMap) : null;
-        material.bumpScale = 40.0;
+        material.bumpScale = 30.0;
         const mesh = new THREE.Mesh(geometry, material);
         return mesh;
     }
@@ -39,10 +39,44 @@ const geo = (() => {
         return mesh;
     }
 
+    function createParticleSystem (particles, size, color) {
+        const particleGeom = new THREE.Geometry();
+        const material = new THREE.PointsMaterial({
+            color: new THREE.Color(color),
+            size: size
+        });
+
+        for (let i = 0; i < particles.length; i++) {
+            const height = particles[i].mass / 100000;
+            if (particles[i].hasOwnProperty('geolocation')) {
+                let minOrbit = 20;
+                let maxOrbit = 40;
+                const color = getHeightColor(height);
+                const lat = particles[i].geolocation.coordinates[1];
+                const long = particles[i].geolocation.coordinates[0];
+                const pos = latLongToVector3(
+                    lat, 
+                    long, 
+                    GLOBE.RADIUS, 
+                    minOrbit,
+                    maxOrbit
+                );
+                const particle = new THREE.Vector3(pos.x, pos.y, pos.z);
+                particle.name = particles[i].name;
+                particleGeom.vertices.push(particle);
+            }
+        }
+
+        const particleSystem = new THREE.Points(particleGeom, material);
+
+        return particleSystem;
+    }
+
     return {
         createGlobe,
         createPoint,
-        createSkybox
+        createSkybox,
+        createParticleSystem
     };
 })();
 
@@ -50,3 +84,38 @@ function loadTexture(textureFile) {
     const loader = new THREE.TextureLoader();
     return loader.load(textureFile);
 }
+
+// Convert latitude and longitude to vectrs on the globe 
+function latLongToVector3(lat, lon, radius, minOrbit, maxOrbit) {
+    const phi = (lat)*Math.PI/180;
+    const theta = (lon-180)*Math.PI/180;
+    orbit = Math.floor(Math.random() * (maxOrbit - minOrbit + 1) + minOrbit)
+
+    const x = -(radius+orbit) * Math.cos(phi) * Math.cos(theta);
+    const y = (radius+orbit) * Math.sin(phi);
+    const z = (radius+orbit) * Math.cos(phi) * Math.sin(theta);
+
+    return new THREE.Vector3(x,y,z);
+}
+
+
+// assign color of each meteor bar based on its height
+function getHeightColor(height) {
+    const colors = {
+        med: '#e830ce', 
+        low: '#c6e501', 
+        high: '#ff1818'
+    };
+
+    if (height < 1) {
+        return colors.low;
+    } else if (height < 10) {
+        return colors.med;
+    } else if (height >= 10) {
+        return colors.high; 
+    } else {
+        return '#ffffff';
+    }
+
+}
+
