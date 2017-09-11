@@ -27,7 +27,7 @@ camera.lookAt(new THREE.Vector3(0, 0, 0));
 let spotLight = new THREE.SpotLight(0xffffff, 0.4);
 spotLight.position.set(SPOTLIGHT.X, SPOTLIGHT.Y, SPOTLIGHT.Z);
 
-let ambientLight = new THREE.AmbientLight(0xfffffff, 1);
+let ambientLight = new THREE.AmbientLight(0xffffff, 1);
 scene.add(ambientLight);
 
 let skybox = geo.createSkybox(1000);
@@ -45,7 +45,8 @@ let globe = geo.createGlobe(
 globe.position.set(GLOBE.POSITION.X, GLOBE.POSITION.Y, GLOBE.POSITION.Z);
 scene.add(globe);
 
-mapPoints();
+let particleSystem = geo.createParticleSystem(data, 0.3, '#ffff00');
+scene.add(particleSystem);
 
 const cameraHelper = new THREE.CameraHelper(spotLight.shadow.camera);
 const axisHelper = new THREE.AxisHelper(100);
@@ -54,6 +55,8 @@ const OrbitControls = new THREE.OrbitControls(camera);
 
 const stats = initStats();
 addSceneDependentControls(scene);
+
+let last = 0; 
 render();
 
 function initStats() {
@@ -64,21 +67,47 @@ function initStats() {
     return stats;
 }
 
-function render() {
+function render(timestamp) {
     stats.begin();
     stats.end();
     OrbitControls.update();
 
     updateControls();
-    animate();
+    animate(timestamp);
 
     renderer.render(scene, camera);
     requestAnimationFrame(render);
 }
 
+function animate (timestamp) {
+    if (timestamp - last > 4) {
+        updateParticles();
+        last = timestamp;
+    }
 
-function animate () {
+    // Point spotlight where camera is pointing
     spotLight.position.copy(camera.position);
+}
+
+function updateParticles () {
+    let {vertices} = particleSystem.geometry;
+    // for (let i = 0; i < vertices.length; i++) {
+    //     let newPt = movePoint(vertices[i], new THREE.Vector3(0, 0, 0), 0.01);
+    //     vertices[i] = newPt;
+    // }
+    
+    particleSystem.rotation.y += 0.005;
+
+    particleSystem.geometry.verticesNeedUpdate = true;
+}
+
+function movePoint (start, end, speed) {
+    let vec = new THREE.Vector3();
+    const origin = new THREE.Vector3(0, 0, 0);
+    const direction = vec.subVectors(end, start).normalize();
+    const time = start.distanceTo(end) * speed;
+    vec.addVectors ( start, direction.multiplyScalar( time ) );
+    return vec;
 }
 
 function addSceneDependentControls(scene) {
@@ -88,7 +117,7 @@ function addSceneDependentControls(scene) {
 }
 
 function updateControls() {
-    OrbitControls.autoRotate = true;
+    OrbitControls.autoRotate = userControls.autoRotate;
     userControls.showAxes ? scene.add(axisHelper) : scene.remove(axisHelper);
     userControls.showSpotLight ? scene.add(cameraHelper) : scene.remove(cameraHelper);
     userControls.showSpotLightHelper ? scene.add(spotLightHelper) : scene.remove(spotLightHelper);
@@ -101,62 +130,8 @@ function onResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-function latLongToVector3(lat, lon, radius, height) {
-    const phi = (lat)*Math.PI/180;
-    const theta = (lon-180)*Math.PI/180;
-
-    const x = -(radius+height) * Math.cos(phi) * Math.cos(theta);
-    const y = (radius+height) * Math.sin(phi);
-    const z = (radius+height) * Math.cos(phi) * Math.sin(theta);
-
-    return new THREE.Vector3(x,y,z);
-}
-
 function degreesToRadians (degrees) {
     return degrees*(Math.PI/180); 
-}
-
-function getHeightColor(height) {
-    const colors = {
-        med: '#e830ce', 
-        low: '#c6e501', 
-        high: '#ff1818'
-    };
-
-    if (height < 1) {
-        return colors.low;
-    } else if (height < 10) {
-        return colors.med;
-    } else if (height >= 10) {
-        return colors.high; 
-    } else {
-        return '#ffffff';
-    }
-
-}
-
-function mapPoints () {
-    let mets = data;
-    let rad = 5;
-    let geom = new THREE.Geometry();
-
-    for (let i = 0; i < mets.length; i++) {
-        let height = mets[i].mass/100000;
-        if (mets[i].hasOwnProperty('geolocation')) {
-            let color = getHeightColor(height);
-            let point = geo.createPoint(0.1, 0.1, height, color);
-            let lat = mets[i].geolocation.coordinates[1];
-            let long = mets[i].geolocation.coordinates[0];
-            let pos = latLongToVector3(lat, long, GLOBE.RADIUS, height/2);
-            point.position.set(pos.x, pos.y, pos.z); 
-            point.lookAt( new THREE.Vector3(0,0,0) );
-            // THREE.GeometryUtils.merge(geom, point);
-            scene.add(point);
-        }
-    }
-
-    // let total = new THREE.Mesh(geom,new THREE.MeshFaceMaterial());
-    // scene.add(total);
 }
 
 window.addEventListener('resize', onResize, false);
