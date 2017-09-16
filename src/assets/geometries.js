@@ -58,7 +58,7 @@ const geo = (() => {
                 const pos = latLongToVector3(
                     lat, 
                     long, 
-                    GLOBE.RADIUS, 
+                    settings.GLOBE.RADIUS, 
                     minOrbit,
                     maxOrbit
                 );
