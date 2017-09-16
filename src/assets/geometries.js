@@ -1,9 +1,7 @@
 const geo = (() => {
     function createGlobe(radius, segments, color, texture, bumpMap) {
         const geometry = new THREE.SphereGeometry(radius, segments, segments);
-        const material = new THREE.MeshPhongMaterial({
-            color: new THREE.Color(color)
-        });
+        const material = new THREE.MeshPhongMaterial({color: 0x0e0b19, transparent: true, opacity: 0.5});
         material.map = texture ? loadTexture(texture) : null;
         material.bumpMap = bumpMap ? loadTexture(bumpMap) : null;
         material.bumpScale = 30.0;
@@ -46,11 +44,14 @@ const geo = (() => {
             size: size
         });
 
+        let masses = [];
+
+        //TODO: (camden) sort by ascending date
         for (let i = 0; i < particles.length; i++) {
             const height = particles[i].mass / 100000;
             if (particles[i].hasOwnProperty('geolocation')) {
-                let minOrbit = 20;
-                let maxOrbit = 40;
+                let minOrbit = 100;
+                let maxOrbit = 100;
                 const color = getHeightColor(height);
                 const lat = particles[i].geolocation.coordinates[1];
                 const long = particles[i].geolocation.coordinates[0];
@@ -62,14 +63,17 @@ const geo = (() => {
                     maxOrbit
                 );
                 const particle = new THREE.Vector3(pos.x, pos.y, pos.z);
-                particle.name = particles[i].name;
+                masses.push(height);
                 particleGeom.vertices.push(particle);
             }
         }
 
         const particleSystem = new THREE.Points(particleGeom, material);
 
-        return particleSystem;
+        return {
+            particleSystem: particleSystem,
+            masses: masses
+        }
     }
 
     return {
@@ -89,7 +93,8 @@ function loadTexture(textureFile) {
 function latLongToVector3(lat, lon, radius, minOrbit, maxOrbit) {
     const phi = (lat)*Math.PI/180;
     const theta = (lon-180)*Math.PI/180;
-    orbit = Math.floor(Math.random() * (maxOrbit - minOrbit + 1) + minOrbit)
+
+    const orbit = Math.floor(Math.random() * (maxOrbit - minOrbit + 1) + minOrbit)
 
     const x = -(radius+orbit) * Math.cos(phi) * Math.cos(theta);
     const y = (radius+orbit) * Math.sin(phi);

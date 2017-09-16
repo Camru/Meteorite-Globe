@@ -1,5 +1,5 @@
 const data = (() => {
-    return [{"fall":"Fell","geolocation":{"type":"Point","coordinates":[6.08333,50.775]},"id":"1","mass":"21","name":"Aachen","nametype":"Valid","recclass":"L5","reclat":"50.775000","reclong":"6.083330","year":"1880-01-01T00:00:00.000"}
+    const meteorites = [{"fall":"Fell","geolocation":{"type":"Point","coordinates":[6.08333,50.775]},"id":"1","mass":"21","name":"Aachen","nametype":"Valid","recclass":"L5","reclat":"50.775000","reclong":"6.083330","year":"1880-01-01T00:00:00.000"}
     ,{"fall":"Fell","geolocation":{"type":"Point","coordinates":[10.23333,56.18333]},"id":"2","mass":"720","name":"Aarhus","nametype":"Valid","recclass":"H6","reclat":"56.183330","reclong":"10.233330","year":"1951-01-01T00:00:00.000"}
     ,{"fall":"Fell","geolocation":{"type":"Point","coordinates":[-113,54.21667]},"id":"6","mass":"107000","name":"Abee","nametype":"Valid","recclass":"EH4","reclat":"54.216670","reclong":"-113.000000","year":"1952-01-01T00:00:00.000"}
     ,{"fall":"Fell","geolocation":{"type":"Point","coordinates":[-99.9,16.88333]},"id":"10","mass":"1914","name":"Acapulco","nametype":"Valid","recclass":"Acapulcoite","reclat":"16.883330","reclong":"-99.900000","year":"1976-01-01T00:00:00.000"}
@@ -999,4 +999,8 @@ const data = (() => {
     ,{"fall":"Fell","geolocation":{"type":"Point","coordinates":[111.53333,-7.08333]},"id":"24011","mass":"20000","name":"Tjabe","nametype":"Valid","recclass":"H6","reclat":"-7.083330","reclong":"111.533330","year":"1869-01-01T00:00:00.000"}
     ,{"fall":"Fell","geolocation":{"type":"Point","coordinates":[106.58333,-6.66667]},"id":"24012","mass":"16500","name":"Tjerebon","nametype":"Valid","recclass":"L5","reclat":"-6.666670","reclong":"106.583330","year":"1922-01-01T00:00:00.000"}
     ,{"fall":"Fell","geolocation":{"type":"Point","coordinates":[34.76667,47.85]},"id":"24019","mass":"600","name":"Tomakovka","nametype":"Valid","recclass":"LL6","reclat":"47.850000","reclong":"34.766670","year":"1905-01-01T00:00:00.000"}];
+
+    return {
+        meteorites
+    };
 })();
