@@ -12,6 +12,12 @@ const {
     GLOBE
 } = settings;
 
+let out = [];
+let doneUpdating = false;
+let particleBuffer = [];
+let continueAnimation = true;
+let startAnimation = true;
+
 let renderer = new THREE.WebGLRenderer();
 renderer.setClearColor(new THREE.Color(BACKGROUND_COLOR));
 renderer.setSize(WIDTH, HEIGHT);
@@ -38,14 +44,15 @@ scene.add( skybox );
 let globe = geo.createGlobe(
     GLOBE.RADIUS,
     GLOBE.SEGMENTS,
-    GLOBE.COLOR,
-    GLOBE.TEXTURE,
-    GLOBE.BUMPMAP
+    '#000000',
 );
 globe.position.set(GLOBE.POSITION.X, GLOBE.POSITION.Y, GLOBE.POSITION.Z);
 scene.add(globe);
 
-let particleSystem = geo.createParticleSystem(data, 0.3, '#ffff00');
+let {particleSystem, masses} = geo.createParticleSystem(data.meteorites, 0.6, '#ffff00');
+let {vertices} = particleSystem.geometry;
+let vertCopy = particleSystem.geometry.vertices.slice();
+let current = vertCopy.shift();
 scene.add(particleSystem);
 
 const cameraHelper = new THREE.CameraHelper(spotLight.shadow.camera);
@@ -73,40 +80,87 @@ function render(timestamp) {
     OrbitControls.update();
 
     updateControls();
-    animate(timestamp);
+    if (continueAnimation) {
+        animate(timestamp);
+    }
+ 
+    // Point spotlight where camera is pointing
+    spotLight.position.copy(camera.position);
 
     renderer.render(scene, camera);
     requestAnimationFrame(render);
 }
 
 function animate (timestamp) {
-    if (timestamp - last > 4) {
-        updateParticles();
-        last = timestamp;
+
+    // seed the particleBuffer to start the animation
+    if (startAnimation) {
+        let nextMeteorite = vertCopy.shift();
+        particleBuffer.push(nextMeteorite); 
+        startAnimation = false;
     }
 
-    // Point spotlight where camera is pointing
-    spotLight.position.copy(camera.position);
+    runMeteorAnimation();
+
+      // start animating a new meteorite after crashRate milliseconds 
+      if (timestamp - last > Math.abs(1000 - userControls.crashRate)) {
+        if (!vertCopy.length) return; 
+        let nextMeteorite = vertCopy.shift();
+        particleBuffer.push(nextMeteorite);
+       last = timestamp;
+   }
+
 }
 
-function updateParticles () {
+function runMeteorAnimation () {
+    // if particle buffer is exhausted, stop meteor animation
+    if (!particleBuffer.length) {
+        console.log('particle buffer out'); // (camden) 
+        continueAnimation = false;
+    }
+
+    let speed = userControls.impactSpeed;
+
+    for (let i = 0; i < particleBuffer.length; i++) {
+        let index = vertices.indexOf(particleBuffer[i]);
+        let nextPosition = movePoint(particleBuffer[i], new THREE.Vector3(0, 0, 0), speed, index);
+        let lastPosition = particleBuffer[i];
+
+        if (nextPosition === lastPosition) {
+            particleBuffer.splice(i, 1);
+            continue;
+        }
+
+        particleBuffer[i] = nextPosition;
+
+        // update rendered particle with new vertex position
+        vertices[index] = particleBuffer[i];
+        particleSystem.geometry.verticesNeedUpdate = true;
+    }
+}
+
+// //TODO: (camden) should we use BufferGeometry here?
+function movePoint (start, end, speed, ind) {
     let {vertices} = particleSystem.geometry;
-    // for (let i = 0; i < vertices.length; i++) {
-    //     let newPt = movePoint(vertices[i], new THREE.Vector3(0, 0, 0), 0.01);
-    //     vertices[i] = newPt;
-    // }
-    
-    particleSystem.rotation.y += 0.005;
-
-    particleSystem.geometry.verticesNeedUpdate = true;
-}
-
-function movePoint (start, end, speed) {
     let vec = new THREE.Vector3();
     const origin = new THREE.Vector3(0, 0, 0);
     const direction = vec.subVectors(end, start).normalize();
-    const time = start.distanceTo(end) * speed;
-    vec.addVectors ( start, direction.multiplyScalar( time ) );
+    const distance = start.distanceTo(end);
+    if (distance <= GLOBE.RADIUS) {
+        let pt = geo.createPoint(0.1, 0.1, masses[ind], '#0000ff');
+        
+        pt.position.x = vertices[ind].x;
+        pt.position.y = vertices[ind].y;
+        pt.position.z = vertices[ind].z;
+       
+        vec.addVectors(pt.position, direction.multiplyScalar(-(masses[ind]/2)));
+        pt.lookAt(new THREE.Vector3(0, 0, 0));
+        pt.position.set(vec.x, vec.y, vec.z);
+        scene.add(pt);
+        vertices[ind] = {x: 100000, y: 10000000, z: 100000}; 
+        return start;
+    }
+    vec.addVectors ( start, direction.multiplyScalar( distance * speed) );
     return vec;
 }
 
@@ -114,6 +168,9 @@ function addSceneDependentControls(scene) {
     userControls.numberOfObjects = scene.children.length;
     userControls.outputObjects = () => console.log(scene.children);
     gui.add(userControls, 'outputObjects');
+
+    userControls.meteorites = data.meteorites.length;
+    gui.add(userControls, 'meteorites');
 }
 
 function updateControls() {
