@@ -16,6 +16,7 @@ const main = (() => {
     let particleBuffer = [];
     let continueAnimation = true;
     let startAnimation = true;
+    let count = 0;
     
     let renderer = new THREE.WebGLRenderer();
     renderer.setClearColor(new THREE.Color(BACKGROUND_COLOR));
@@ -38,25 +39,27 @@ const main = (() => {
     let skybox = geo.createSkybox(1000);
     scene.add( skybox );
     
-    // Geometries ==================================================================
-    
     let globe = geo.createGlobe(
         GLOBE.RADIUS,
         GLOBE.SEGMENTS,
-        '#000000',
+        GLOBE.COLOR, 
+        GLOBE.TEXTURE,
+        GLOBE.BUMPMAP
     );
     globe.position.set(GLOBE.POSITION.X, GLOBE.POSITION.Y, GLOBE.POSITION.Z);
     scene.add(globe);
     
-    let {particleSystem, masses} = geo.createParticleSystem(data.meteorites, 0.6, '#ffff00');
+    let {particleSystem, masses, dates} = geo.createParticleSystem(data.meteorites, 0.6, '#fffffA');
     let {vertices} = particleSystem.geometry;
     let clonedVertices = particleSystem.geometry.vertices.slice();
     scene.add(particleSystem);
+
+    const timelineValue = document.getElementById('timeline-value');
     
     const cameraHelper = new THREE.CameraHelper(spotLight.shadow.camera);
     const axisHelper = new THREE.AxisHelper(100);
     const spotLightHelper = new THREE.SpotLightHelper( spotLight );
-    const OrbitControls = new THREE.OrbitControls(camera);
+    const OrbitControls = new THREE.OrbitControls(camera, renderer.domElement);
     
     const stats = initStats();
     addSceneDependentControls(scene);
@@ -97,8 +100,9 @@ const main = (() => {
         }
     
         runMeteorAnimation();
-    
+
           // start animating a new meteorite after crashRate milliseconds 
+          //TODO: (camden) check out THREE clock
           if (timestamp - lastUpdate > Math.abs(1000 - userControls.crashRate)) {
             if (!clonedVertices.length) return; 
             let nextMeteorite = clonedVertices.shift();
@@ -124,6 +128,7 @@ const main = (() => {
     
             if (nextPosition === lastPosition) {
                 particleBuffer.splice(i, 1);
+                count++;
                 continue;
             }
     
@@ -135,15 +140,17 @@ const main = (() => {
         }
     }
     
-    // //TODO: (camden) should we use BufferGeometry here?
     function movePoint (start, end, speed, ind) {
         let {vertices} = particleSystem.geometry;
         let vec = new THREE.Vector3();
         const origin = new THREE.Vector3(0, 0, 0);
         const direction = vec.subVectors(end, start).normalize();
         const distance = start.distanceTo(end);
-        if (distance <= GLOBE.RADIUS) {
-            let pt = geo.createPoint(0.1, 0.1, masses[ind], '#0000ff');
+
+        // create a pt representing meteorite mass, 
+        // when the meteorite intersects the globe
+        if (Math.floor(distance) === GLOBE.RADIUS) {
+            let pt = geo.createPoint(0.1, 0.1, masses[ind]);
             
             pt.position.x = vertices[ind].x;
             pt.position.y = vertices[ind].y;
@@ -156,25 +163,40 @@ const main = (() => {
             vertices[ind] = {x: 100000, y: 10000000, z: 100000}; 
             return start;
         }
+
         vec.addVectors ( start, direction.multiplyScalar( distance * speed) );
         return vec;
     }
-    
+
     function addSceneDependentControls(scene) {
         userControls.numberOfObjects = scene.children.length;
         userControls.outputObjects = () => console.log(scene.children);
         gui.add(userControls, 'outputObjects');
     
-        userControls.meteorites = data.meteorites.length;
-        gui.add(userControls, 'meteorites');
+        gui.add(userControls, 'meteorites').listen();
+
+        userControls.resetCamera = function() {
+            camera.position.x = CAMERA.X;
+            camera.position.y = CAMERA.Y;
+            camera.position.z = CAMERA.Z;
+        };
+
+        gui.add(userControls, 'resetCamera');
     }
     
     function updateControls() {
+        // GUI controls
         OrbitControls.autoRotate = userControls.autoRotate;
         userControls.showAxes ? scene.add(axisHelper) : scene.remove(axisHelper);
         userControls.showSpotLight ? scene.add(cameraHelper) : scene.remove(cameraHelper);
         userControls.showSpotLightHelper ? scene.add(spotLightHelper) : scene.remove(spotLightHelper);
         userControls.spotLightON ? scene.add(spotLight) : scene.remove(spotLight);
+        userControls.meteorites = clonedVertices.length;
+
+        // DOM controls
+        let ind = count;
+        let date = dates[ind];
+        timelineValue.innerHTML = date || dates[ind-1];
     }
     
     function onResize() {
@@ -188,9 +210,7 @@ const main = (() => {
     }
     
     window.addEventListener('resize', onResize, false);
-    
 
     return {render};
-
 })();
 
