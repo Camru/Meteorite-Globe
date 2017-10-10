@@ -2,23 +2,18 @@ const userControls = (() => {
     const {BACKGROUND_COLOR, CAMERA} = settings;
     // helpers
     this.showAxes = false;
-    this.autoRotate = false;
+    this.autoRotate = true;
 
     // lights
     this.showSpotLight = false;
     this.showSpotLightHelper = false;
     this.spotLightON = true;
 
-    // animation
+    // animatio
     this.crashRate = 500;
     this.impactSpeed = 0.01;
-
-    this.resetCamera = function() {
-        camera.position.x = CAMERA.X;
-        camera.position.y = CAMERA.Y;
-        camera.position.z = CAMERA.Z;
-    };
-
+    this.meteorites = 0;
+    
     return this;
 })();
 
@@ -40,4 +35,4 @@ animationsFolder.add(userControls, 'crashRate', 5, 1000).listen();
 animationsFolder.add(userControls, 'impactSpeed', 0.0, 0.05).listen();
 animationsFolder.open();
 
-gui.add(userControls, 'resetCamera');
+
