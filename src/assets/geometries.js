@@ -88,7 +88,7 @@ function loadTexture(textureFile) {
     return loader.load(textureFile);
 }
 
-// Convert latitude and longitude to vectrs on the globe 
+// Convert latitude and longitude to vectors on the globe 
 function latLongToVector3(lat, lon, radius, altitude) {
     const phi = (lat)*Math.PI/180;
     const theta = (lon-180)*Math.PI/180;
