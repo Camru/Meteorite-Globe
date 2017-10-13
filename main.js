@@ -150,7 +150,8 @@ const main = (() => {
         // create a pt representing meteorite mass, 
         // when the meteorite intersects the globe
         if (distance <= GLOBE.RADIUS) {
-            addMassPillars(vec, direction, index);
+            const collisionError = GLOBE.RADIUS - distance;
+            addMassPillars(vec, direction, index, collisionError);
 
             // send particles offscreen
             vertices[index] = {x: 100000, y: 10000000, z: 100000}; 
@@ -162,7 +163,7 @@ const main = (() => {
         return vec;
     }
 
-    function addMassPillars (vec, direction, index) {
+    function addMassPillars (vec, direction, index, collisionError) {
         let {vertices} = particleSystem.geometry;
 
         let pt = geo.createPoint(0.1, 0.1, masses[index]);
@@ -176,8 +177,15 @@ const main = (() => {
         pt.lookAt(new THREE.Vector3(0, 0, 0));
 
         // move point away from origin by half the pillar height to position it
-        // on the surface of the globe
-        vec.addVectors(pt.position, direction.multiplyScalar(-(masses[index]/2)));
+        // on the surface of the globe. Since the positions are floating
+        // point, the collision won't be detected until the particle is below the
+        // surface of the globe, so subtract the difference between the globe 
+        // surface and the distance of the particle when the collision was 
+        // officially detected
+        vec.addVectors(
+            pt.position, 
+            direction.multiplyScalar((-masses[index]/2) - collisionError)
+        );
         pt.position.set(vec.x, vec.y, vec.z);
         scene.add(pt);
     }
@@ -208,9 +216,9 @@ const main = (() => {
         userControls.meteorites = clonedVertices.length;
 
         // DOM controls
-        let ind = count;
-        let date = dates[ind];
-        timelineValue.innerHTML = date || dates[ind-1];
+        let index = count;
+        let date = dates[index];
+        timelineValue.innerHTML = date || dates[index-1];
     }
     
     function onResize() {
