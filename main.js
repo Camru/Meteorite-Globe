@@ -123,7 +123,7 @@ const main = (() => {
     
         for (let i = 0; i < particleBuffer.length; i++) {
             let index = vertices.indexOf(particleBuffer[i]);
-            let nextPosition = movePoint(particleBuffer[i], new THREE.Vector3(0, 0, 0), speed, index);
+            let nextPosition = movePoint(particleBuffer[i], speed, index);
             let lastPosition = particleBuffer[i];
     
             if (nextPosition === lastPosition) {
@@ -140,32 +140,46 @@ const main = (() => {
         }
     }
     
-    function movePoint (start, end, speed, ind) {
+    function movePoint (start, speed, index) {
         let {vertices} = particleSystem.geometry;
         let vec = new THREE.Vector3();
         const origin = new THREE.Vector3(0, 0, 0);
-        const direction = vec.subVectors(end, start).normalize();
-        const distance = start.distanceTo(end);
+        const direction = vec.subVectors(origin, start).normalize();
+        const distance = start.distanceTo(origin);
 
         // create a pt representing meteorite mass, 
         // when the meteorite intersects the globe
-        if (Math.floor(distance) === GLOBE.RADIUS) {
-            let pt = geo.createPoint(0.1, 0.1, masses[ind]);
-            
-            pt.position.x = vertices[ind].x;
-            pt.position.y = vertices[ind].y;
-            pt.position.z = vertices[ind].z;
-           
-            vec.addVectors(pt.position, direction.multiplyScalar(-(masses[ind]/2)));
-            pt.lookAt(new THREE.Vector3(0, 0, 0));
-            pt.position.set(vec.x, vec.y, vec.z);
-            scene.add(pt);
-            vertices[ind] = {x: 100000, y: 10000000, z: 100000}; 
+        if (distance <= GLOBE.RADIUS) {
+            addMassPillars(vec, direction, index);
+
+            // send particles offscreen
+            vertices[index] = {x: 100000, y: 10000000, z: 100000}; 
+
             return start;
         }
 
         vec.addVectors ( start, direction.multiplyScalar( distance * speed) );
         return vec;
+    }
+
+    function addMassPillars (vec, direction, index) {
+        let {vertices} = particleSystem.geometry;
+
+        let pt = geo.createPoint(0.1, 0.1, masses[index]);
+        
+        // set pillar position equal to meteorite's lat,long position 
+        pt.position.x = vertices[index].x;
+        pt.position.y = vertices[index].y;
+        pt.position.z = vertices[index].z;
+
+        // angle pillar towards origin 
+        pt.lookAt(new THREE.Vector3(0, 0, 0));
+
+        // move point away from origin by half the pillar height to position it
+        // on the surface of the globe
+        vec.addVectors(pt.position, direction.multiplyScalar(-(masses[index]/2)));
+        pt.position.set(vec.x, vec.y, vec.z);
+        scene.add(pt);
     }
 
     function addSceneDependentControls(scene) {
